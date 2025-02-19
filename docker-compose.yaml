@@ -1,0 +1,12 @@
+services:
+
+  frontend:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    env_file:
+      - .env
+    volumes:
+      - ./config:/app/config

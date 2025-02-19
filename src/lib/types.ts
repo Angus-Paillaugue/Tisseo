@@ -1,31 +1,68 @@
+export interface TisseoNextDepartureResponse {
+	departures: {
+		departure: {
+			dateTime: string;
+			destination:
+				{
+					cityName: string;
+					id: string;
+					name: string;
+				}[];
+			line: {
+				bgXmlColor: string;
+				color: string;
+				fgXmlColor: string;
+				id: string;
+				name: string;
+				network: string;
+				shortName: string;
+			};
+			realTime: string;
+		}[];
+		stop: {
+			id: string;
+			name: string;
+			operatorCode: string;
+		};
+		stopArea: {
+			cityId: string;
+			cityName: string;
+			id: string;
+			name: string;
+		};
+	};
+	expirationDate: string;
+}
+
+export interface Departures {
+	departures: Departure[];
+	expirationDate: Date;
+}
+
 export interface Departure {
-	line: Line;
-	date: Date;
-	stop: Stop;
 	id: string;
+	dateTime: Date;
+	destination: string;
+	line: Line;
+	stop: Stop;
 	walkTime?: number;
 	tracked?: boolean;
 }
 
 export interface Line {
-	id: string; // Tisseo line id (ex: line:58)
-	label: string; // Tisseo line label (ex: 81)
-	direction: string; // Tisseo line direction (ex: "Université Paul Sabatier")
-	color: string; // Tisseo line color (ex: "#FF0000")
+	bgXmlColor: string;
+	fgXmlColor: string;
+	id: string;
+	shortName: string;
 }
 
 export interface Stop {
-	id: string;  // Tisseo stop id (ex: 14861)
-	label: string;  // Tisseo stop label (ex: "Pastourelles")
-	lines?: Line[]; // Tisseo lines that stop at this stop
+	id: string;
+	name: string;
 }
 
 export interface LineConfig {
 	stopId: Stop['id'];
 	lineId: Line['id'];
-	lineLabel: Line['label'];
 	walkTime?: number;
-	stopLabel: Stop['label'];
-	direction: Line['direction'];
-	color: Line['color'];
 }

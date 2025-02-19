@@ -1,0 +1,17 @@
+[
+  {
+		"stopId": "stop_point:SP_1367",
+		"lineId": "line:58",
+		"walkTime": 11
+  },
+  {
+		"stopId": "stop_point:SP_1367",
+		"lineId": "line:29",
+		"walkTime": 11
+  },
+  {
+		"stopId": "stop_point:SP_2074",
+		"lineId": "line:59",
+		"walkTime": 11
+  }
+]

@@ -1,127 +1,77 @@
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
-import jsdom from 'jsdom';
-import { linesToTrack } from '@config/lines.config';
-import type { Line, Stop, Departure } from '$lib/types';
-// import { env } from '$env/dynamic/private';
+import type { Stop, Line, TisseoNextDepartureResponse, Departures, Departure } from '$lib/types';
+import { env } from '$env/dynamic/private';
+import { BASE_API_URL } from '$lib/constants';
+import trackedStops from '@config/lines.json';
 
-let refreshedAt = new Date();
 
-interface IncomingDeparture {
-	line: Line;
-	departures: Date[];
-	stop: Stop;
-	walkTime?: number;
-}
+const STOP_SCHEDULE_URL = BASE_API_URL + `/stops_schedules.json?key=${env.TISSEO_API_KEY}`;
+const RESULT_PER_LINE = 3;
 
-interface FlattenedDeparture {
-	line: Line;
-	date: Date;
-	stop: Stop;
-	walkTime?: number;
-}
-
-interface FinalDepartures {
-	id: Departure['id'];
-	line: Line;
-	date: Date;
-	stop: Stop;
-	walkTime?: number;
-}
-
-async function getPage(lineId: Line['id'], stopId: Stop['id']): Promise<string> {
+// Fetch the next departures at a given stop for a given line
+const getNextDeparturesAtStop = async (
+	stopId: Stop['id'],
+	lineId: Line['id']
+): Promise<TisseoNextDepartureResponse> => {
+	console.log('Sending a request to Tisseo API');
 	const res = await fetch(
-		`https://www.tisseo.fr/prochains-passages?line_id=${lineId}&stop_num=${stopId}`
+		`${STOP_SCHEDULE_URL}&stopPointId=${stopId}&lineId=${lineId}&number=${RESULT_PER_LINE}`
 	);
-	refreshedAt = new Date();
-	return res.text();
-}
+	const data = await res.json();
+	return data;
+};
 
-async function extractNextDepartures(page: string): Promise<Date[]> {
-	const trimTime = (time: string): string => time.replace(/\s+/g, ' ').replace(/\*/g, '').trim();
-	const isTimeString = (t: string): boolean => t.match(/^\d{2}:\d{2}$/) !== null;
-	const doc = new jsdom.JSDOM(page);
-	const select = (q: string, src: Element | Document = doc.window.document): NodeListOf<Element> =>
-		(src as Element | Document).querySelectorAll(q);
-	const nextDepartures = select('table.table > tbody > tr');
-	const departures = Array.from(nextDepartures)
-		.map((departure) => {
-			const time = trimTime(select('td:first-child', departure)[0]?.textContent || '');
-			if (!isTimeString(time)) return null;
-			const dateTime = new Date();
-			const [hours, minutes] = time.split(':').map((t) => parseInt(t, 10));
-			dateTime.setHours(hours);
-			dateTime.setMinutes(minutes);
-			dateTime.setSeconds(0);
-			dateTime.setMilliseconds(0);
-			// Take into account busses that go past midnight
-			if (dateTime.getDay() !== new Date().getDay()) {
-				dateTime.setHours(hours + 24);
-			}
-			return dateTime;
-		})
-		.filter((d): d is Date => d !== null);
-	return departures;
-}
+// Transform the raw response from Tisseo API to a more usable format
+const formatNextDepartures = (data: TisseoNextDepartureResponse): Departure[] => {
+	const stop: Departure['stop'] = {
+		id: data.departures.stop.id,
+		name: data.departures.stop.name
+	};
 
-function orderDepartures(departures: IncomingDeparture[]): FlattenedDeparture[] {
-	const flattened: FlattenedDeparture[] = departures.flatMap((item) =>
-		item.departures.map((date) => ({
-			date: date,
-			...item
-		}))
-	);
-	flattened.sort((a, b) => a.date.getTime() - b.date.getTime());
-
-	// Add an id to each departure
-	const finalDepartures: FinalDepartures[] = flattened.map((departure) => {
-		const id = `${departure.line.id}-${departure.stop.id}-${departure.date.getTime()}`;
-		return {
-			...departure,
-			id
-		}
+	return data.departures.departure.map((departure) => {
+		const line: Departure['line'] = {
+			bgXmlColor: departure.line.bgXmlColor,
+			fgXmlColor: departure.line.fgXmlColor,
+			id: departure.line.id,
+			shortName: departure.line.shortName
+		};
+		const dateTime: Departure['dateTime'] = new Date(departure.dateTime);
+		const id = `${line.id}-${stop.id}-${dateTime.getTime()}`;
+		const destination: Departure['destination'] = departure.destination[0].name;
+		return { dateTime, destination, line, stop, id };
 	});
+};
 
-	return finalDepartures.map(({ line, date, stop, walkTime, id }) => ({
-		line,
-		date,
-		stop,
-		walkTime,
-		id
-	}));
-}
+// Sort departures by date
+const orderByDate = (a: Departure, b: Departure) => {
+	return a.dateTime.getTime() - b.dateTime.getTime();
+};
 
 export const GET: RequestHandler = async () => {
-	const departures: IncomingDeparture[] = await Promise.all(
-		linesToTrack.map(async (configEntry) => {
-			const page = await getPage(configEntry.lineId, configEntry.stopId);
-			const departures = await extractNextDepartures(page);
-			const stop = {
-				id: configEntry.stopId,
-				label: configEntry.stopLabel
-			};
-			const line = {
-				id: configEntry.lineId,
-				label: configEntry.lineLabel,
-				direction: configEntry.direction,
-				color: configEntry.color
-			}
-			return {
-				line,
-				departures,
-				stop,
-				walkTime: configEntry.walkTime
-			};
-		})
-	);
-	const orderedDepartures = orderDepartures(departures);
-	const headers: Record<string, string> = {};
-	// if (env.NODE_ENV !== 'production') { // Cache for 1 minute in dev
-	// 	headers['Cache-Control'] = 'max-age=60';
-	// }
+	let expirationDate = new Date();
+	const departures: Departure[] = [];
 
-	return json(
-		{ departures: orderedDepartures, refreshedAt },
-		{ headers }
-	);
+	// Fetch next departures for each line, format them and store them in the departures array
+	for (const track of trackedStops) {
+		const { stopId, lineId } = track;
+		const data = await getNextDeparturesAtStop(stopId, lineId);
+		expirationDate = new Date(data.expirationDate);
+		departures.push(...formatNextDepartures(data));
+	}
+
+	departures.sort(orderByDate);
+
+	const headers: Record<string, string> = {};
+
+	if (env.NODE_ENV !== 'production') {
+		headers['Cache-Control'] = 'max-age=60';
+	}
+
+	const response: Departures = {
+		departures,
+		expirationDate
+	};
+
+	return json(response, { headers });
 };
