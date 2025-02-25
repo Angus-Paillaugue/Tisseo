@@ -91,7 +91,7 @@
 	<div class="pointer-events-none fixed right-0 bottom-0 left-0 z-40 h-fit max-h-svh p-2">
 		<div
 			class={cn(
-				'bg-card text-foreground pointer-events-auto mx-auto flex max-h-full max-w-(--breakpoint-md) origin-bottom flex-col rounded-sm border p-3',
+				'bg-card text-foreground pointer-events-auto mx-auto flex max-h-full max-w-screen-md origin-bottom flex-col rounded border p-3',
 				!isDragging && 'transition-transform'
 			)}
 			transition:fly={{ y: '100%', duration: TRANSITION_DURATION, easing: backInOut }}
@@ -112,7 +112,7 @@
 				<!-- Drag handle -->
 				<div class="bg-foreground h-1 w-1/2 max-w-24 rounded-full"></div>
 			</div>
-			<div class="flex grow flex-col overflow-y-auto">
+			<div class="no-scrollbar flex grow flex-col overflow-y-auto">
 				{@render children?.()}
 			</div>
 		</div>

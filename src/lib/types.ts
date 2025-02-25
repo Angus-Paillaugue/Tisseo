@@ -2,12 +2,11 @@ export interface TisseoNextDepartureResponse {
 	departures: {
 		departure: {
 			dateTime: string;
-			destination:
-				{
-					cityName: string;
-					id: string;
-					name: string;
-				}[];
+			destination: {
+				cityName: string;
+				id: string;
+				name: string;
+			}[];
 			line: {
 				bgXmlColor: string;
 				color: string;
@@ -17,7 +16,7 @@ export interface TisseoNextDepartureResponse {
 				network: string;
 				shortName: string;
 			};
-			realTime: string;
+			realTime: 'yes' | 'no';
 		}[];
 		stop: {
 			id: string;
@@ -34,19 +33,32 @@ export interface TisseoNextDepartureResponse {
 	expirationDate: string;
 }
 
+export type TisseoNetworkMessagesResponse = TisseoNetworkMessage[];
+
+export interface TisseoNetworkMessage {
+	lines?: TisseoNextDepartureResponse['departures']['departure'][0]['line'][];
+	message: {
+		content: string;
+		id: string;
+		importanceLevel: 'normal' | 'important';
+		scope: 'line' | 'event' | 'global';
+		title: string;
+		type: string;
+		url: string;
+	};
+}
+
 export interface Departures {
 	departures: Departure[];
 	expirationDate: Date;
 }
 
 export interface Departure {
-	id: string;
 	dateTime: Date;
 	destination: string;
 	line: Line;
 	stop: Stop;
 	walkTime?: number;
-	tracked?: boolean;
 }
 
 export interface Line {

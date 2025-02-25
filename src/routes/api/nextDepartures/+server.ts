@@ -2,11 +2,11 @@ import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
 import type { Stop, Line, TisseoNextDepartureResponse, Departures, Departure } from '$lib/types';
 import { env } from '$env/dynamic/private';
+import { TISSEO_API_KEY } from '$env/static/private';
 import { BASE_API_URL } from '$lib/constants';
 import trackedStops from '@config/lines.json';
 
-
-const STOP_SCHEDULE_URL = BASE_API_URL + `/stops_schedules.json?key=${env.TISSEO_API_KEY}`;
+const STOP_SCHEDULE_URL = BASE_API_URL + `/stops_schedules.json?key=${TISSEO_API_KEY}`;
 const RESULT_PER_LINE = 3;
 
 // Fetch the next departures at a given stop for a given line
@@ -37,9 +37,8 @@ const formatNextDepartures = (data: TisseoNextDepartureResponse): Departure[] =>
 			shortName: departure.line.shortName
 		};
 		const dateTime: Departure['dateTime'] = new Date(departure.dateTime);
-		const id = `${line.id}-${stop.id}-${dateTime.getTime()}`;
 		const destination: Departure['destination'] = departure.destination[0].name;
-		return { dateTime, destination, line, stop, id };
+		return { dateTime, destination, line, stop };
 	});
 };
 
