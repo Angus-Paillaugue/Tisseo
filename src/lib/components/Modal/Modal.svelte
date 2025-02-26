@@ -105,7 +105,7 @@
 			<!-- max-height : max modal height taking padding of the parent into account -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
-				class="flex shrink-0 flex-row items-center justify-center pt-1 pb-4 cursor-grab"
+				class="flex shrink-0 cursor-grab flex-row items-center justify-center pt-1 pb-4"
 				ontouchstart={handleTouchStart}
 				ontouchmove={handleTouchMove}
 				ontouchend={handleTouchEnd}
@@ -114,7 +114,12 @@
 				<!-- Drag handle -->
 				<div class="bg-foreground h-1 w-1/2 max-w-24 rounded-full"></div>
 			</div>
-			<div class={cn("no-scrollbar flex grow flex-col overflow-y-auto", isDragging && 'pointer-events-none select-none')}>
+			<div
+				class={cn(
+					'no-scrollbar flex grow flex-col overflow-y-auto',
+					isDragging && 'pointer-events-none select-none'
+				)}
+			>
 				{@render children?.()}
 			</div>
 		</div>

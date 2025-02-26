@@ -6,7 +6,7 @@
 	import { scale } from 'svelte/transition';
 	import { SvelteDate } from 'svelte/reactivity';
 	import { cn } from '$lib/utils';
-	import trackedStops from '@config/index';
+	import { getConfig } from '$lib/config';
 
 	const POLLING_INTERVAL = 60 * 1000; // 60 seconds
 
@@ -15,6 +15,7 @@
 	let timeDisplayMode = $state<'delay' | 'time'>('delay');
 	let now = new SvelteDate();
 	let isLoading = $state(true);
+	let trackedStops = $state<Awaited<ReturnType<typeof getConfig>>>();
 
 	const getWalkTime = (lineId: Line['id'], stopId: Stop['id']) => {
 		const line = trackedStops?.find((line) => line.lineId === lineId && line.stopId === stopId);
@@ -41,8 +42,12 @@
 	}
 
 	onMount(() => {
-		// Fetch departures
-		fetchData();
+		// Fetch config
+		getConfig().then((config) => {
+			trackedStops = config;
+			// Fetch departures
+			fetchData();
+		});
 
 		// Set time display mode
 		if (timeDisplayMode in localStorage) {

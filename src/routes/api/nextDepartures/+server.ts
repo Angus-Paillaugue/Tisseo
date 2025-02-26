@@ -3,17 +3,17 @@ import { json } from '@sveltejs/kit';
 import type { Stop, Line, TisseoNextDepartureResponse, Departures, Departure } from '$lib/types';
 import { env } from '$env/dynamic/private';
 import { BASE_API_URL } from '$lib/constants';
-import trackedStops from '@config/lines.json';
+import { getConfig } from '$lib/config';
 
 const STOP_SCHEDULE_URL = BASE_API_URL + `/stops_schedules.json?key=${env.TISSEO_API_KEY}`;
-const RESULT_PER_LINE = 3;
+const RESULT_PER_LINE = 5;
 
 // Fetch the next departures at a given stop for a given line
 const getNextDeparturesAtStop = async (
 	stopId: Stop['id'],
 	lineId: Line['id']
 ): Promise<TisseoNextDepartureResponse> => {
-	console.log('Sending a request to Tisseo API');
+	console.count('Sending a request to Tisseo API');
 	const res = await fetch(
 		`${STOP_SCHEDULE_URL}&stopPointId=${stopId}&lineId=${lineId}&number=${RESULT_PER_LINE}`
 	);
@@ -46,9 +46,10 @@ const orderByDate = (a: Departure, b: Departure) => {
 	return a.dateTime.getTime() - b.dateTime.getTime();
 };
 
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ fetch }) => {
 	let expirationDate = new Date();
 	const departures: Departure[] = [];
+	const trackedStops = await getConfig(fetch);
 
 	// Fetch next departures for each line, format them and store them in the departures array
 	for (const track of trackedStops) {
