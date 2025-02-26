@@ -4,7 +4,7 @@
 	import { fly } from 'svelte/transition';
 	import { TRANSITION_DURATION } from '.';
 	import { cn } from '$lib/utils';
-	import { backInOut } from 'svelte/easing';
+	import { backOut } from 'svelte/easing';
 
 	interface MyProps {
 		open: boolean;
@@ -94,7 +94,9 @@
 				'bg-card text-foreground pointer-events-auto mx-auto flex max-h-full max-w-screen-md origin-bottom flex-col rounded border p-3',
 				!isDragging && 'transition-transform'
 			)}
-			transition:fly={{ y: '100%', duration: TRANSITION_DURATION, easing: backInOut }}
+			style:transition-duration={isDragging ? '0ms' : `${TRANSITION_DURATION}ms`}
+			in:fly={{ y: '100%', duration: TRANSITION_DURATION, easing: backOut }}
+			out:fly={{ y: '100%', duration: TRANSITION_DURATION }}
 			bind:this={modalCard}
 			style:transform={`translateY(${swipeY >= 0 ? swipeY : 0}px) scaleY(${swipeY < 0 ? -swipeY * 0.0002 + 1 : 1})`}
 			style:max-height={`${fullScreen ? '100%' : 'calc(70svh - .5rem'}`}
@@ -103,7 +105,7 @@
 			<!-- max-height : max modal height taking padding of the parent into account -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
-				class="flex shrink-0 flex-row items-center justify-center pt-1 pb-4"
+				class="flex shrink-0 flex-row items-center justify-center pt-1 pb-4 cursor-grab"
 				ontouchstart={handleTouchStart}
 				ontouchmove={handleTouchMove}
 				ontouchend={handleTouchEnd}
@@ -112,7 +114,7 @@
 				<!-- Drag handle -->
 				<div class="bg-foreground h-1 w-1/2 max-w-24 rounded-full"></div>
 			</div>
-			<div class="no-scrollbar flex grow flex-col overflow-y-auto">
+			<div class={cn("no-scrollbar flex grow flex-col overflow-y-auto", isDragging && 'pointer-events-none select-none')}>
 				{@render children?.()}
 			</div>
 		</div>

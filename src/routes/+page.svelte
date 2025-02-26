@@ -116,8 +116,8 @@
 			{@const shouldLeaveNow = departureInNbMinutes < (departure?.walkTime ?? 0)}
 			<div
 				class={cn(
-					'bg-card relative flex h-16 shrink-0 items-center justify-between overflow-hidden rounded-sm border px-1.5 text-start transition-all',
-					shouldLeaveNow && 'ring-primary ring-2'
+					'bg-card relative flex h-18 shrink-0 items-center justify-between overflow-hidden rounded-sm border px-2 text-start transition-all',
+					shouldLeaveNow && 'ring-primary ring-2 ring-inset'
 				)}
 			>
 				<div class="flex flex-col gap-1">

@@ -6,3 +6,5 @@ Dockerfile
 pnpm-lock.yaml
 .vscode
 build
+scripts
+docker-compose.yaml

@@ -2,7 +2,7 @@ import ModalComponent from './Modal.svelte';
 import Backdrop from './Backdrop.svelte';
 import Heading from './Heading.svelte';
 
-export const TRANSITION_DURATION = 800;
+export const TRANSITION_DURATION = 500;
 
 const Modal = ModalComponent as typeof ModalComponent & {
 	Backdrop: typeof Backdrop;
