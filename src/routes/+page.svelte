@@ -8,17 +8,18 @@
 	import { cn } from '$lib/utils';
 	import { getConfig } from '$lib/config';
 
-	const POLLING_INTERVAL = 60 * 1000; // 60 seconds
-
 	let nextDepartures = $state<Departures>();
 	let updatedAt = $state<Date>(new Date());
 	let timeDisplayMode = $state<'delay' | 'time'>('delay');
 	let now = new SvelteDate();
 	let isLoading = $state(true);
-	let trackedStops = $state<Awaited<ReturnType<typeof getConfig>>>();
+	let config = $state<Awaited<ReturnType<typeof getConfig>>>();
 
 	const getWalkTime = (lineId: Line['id'], stopId: Stop['id']) => {
-		const line = trackedStops?.find((line) => line.lineId === lineId && line.stopId === stopId);
+		if (!config) return 0;
+		const line = config.toTrack.find(
+			(line) => line.stopId === stopId && (!line.lineId || line.lineId === lineId)
+		);
 		return line?.walkTime ?? 0;
 	};
 
@@ -42,20 +43,24 @@
 	}
 
 	onMount(() => {
+		let interval: ReturnType<typeof setInterval>;
 		// Fetch config
-		getConfig().then((config) => {
-			trackedStops = config;
-			// Fetch departures
+		getConfig().then((result) => {
+			config = result;
+
+			// Set time display mode
+			if (timeDisplayMode in localStorage) {
+				timeDisplayMode = localStorage.getItem('timeDisplayMode') as 'time' | 'delay';
+			}
+
 			fetchData();
+
+			interval = setInterval(fetchData, config.pollInterval);
 		});
 
-		// Set time display mode
-		if (timeDisplayMode in localStorage) {
-			timeDisplayMode = localStorage.getItem('timeDisplayMode') as 'time' | 'delay';
-		}
-
-		const interval = setInterval(fetchData, POLLING_INTERVAL);
-		return () => clearInterval(interval);
+		return () => {
+			if (interval) clearInterval(interval);
+		};
 	});
 
 	/**

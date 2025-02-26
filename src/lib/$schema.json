@@ -1,0 +1,47 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://example.com/config.schema.json",
+	"type": "object",
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"format": "uri"
+		},
+		"pollInterval": {
+			"type": "integer",
+			"minimum": 15,
+			"description": "The time in seconnds between each refresh of the departure time"
+		},
+		"toTrack": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"properties": {
+					"stopId": {
+						"type": "string",
+						"description": "The ID of the stop to track. (ex: stop_point:SP_1234)"
+					},
+					"lineId": {
+						"type": "string",
+						"description": "The ID of the line to track. (ex: line:123)"
+					},
+					"walkTime": {
+						"type": "integer",
+						"minimum": 0,
+						"description": "The time in minutes it takes you to reach the bus stop."
+					},
+					"numberOfResults": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 15,
+						"description": "The number of results to display for this entry."
+					}
+				},
+				"required": ["stopId"],
+				"additionalProperties": false
+			}
+		}
+	},
+	"required": ["$schema", "pollInterval", "toTrack"],
+	"additionalProperties": false
+}

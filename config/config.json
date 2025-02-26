@@ -1,0 +1,16 @@
+{
+	"$schema": "https://raw.githubusercontent.com/Angus-Paillaugue/Tisseo/refs/heads/main/src/lib/$schema.json",
+	"toTrack": [
+		{
+			"stopId": "stop_point:SP_1367",
+			"walkTime": 3,
+			"numberOfResults": 7
+		},
+		{
+			"stopId": "stop_point:SP_2074",
+			"lineId": "line:59",
+			"walkTime": 3,
+			"numberOfResults": 3
+		}
+	]
+}

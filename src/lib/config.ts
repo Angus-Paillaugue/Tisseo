@@ -1,6 +1,19 @@
-import type { LineConfig } from '$lib/types';
+import type { ConfigFile, Config } from '$lib/types';
 
-export const getConfig = async (fetchFN?: typeof fetch): Promise<LineConfig[]> => {
+const DEFAULT_CONFIG: Config = {
+	$schema: '',
+	pollInterval: 60,
+	toTrack: []
+};
+
+const mergeConfig = (config: ConfigFile): Config => {
+	return {
+		...DEFAULT_CONFIG,
+		...config
+	};
+};
+
+export const getConfig = async (fetchFN?: typeof fetch): Promise<Config> => {
 	// Solution 1: vite iport
 	// Issue : bundled so no updates on file change
 	// const fileContents = await import('./lines.json') as { default: LineConfig[] };
@@ -11,5 +24,5 @@ export const getConfig = async (fetchFN?: typeof fetch): Promise<LineConfig[]> =
 	const res = await (fetchFN ?? fetch)('/api/config');
 	const data = await res.json();
 
-	return data;
+	return mergeConfig(data);
 };

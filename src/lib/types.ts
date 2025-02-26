@@ -73,8 +73,16 @@ export interface Stop {
 	name: string;
 }
 
+// User configutration
 export interface LineConfig {
 	stopId: Stop['id'];
-	lineId: Line['id'];
+	lineId?: Line['id'];
 	walkTime?: number;
+	numberOfResults?: number;
 }
+export interface ConfigFile {
+	$schema: string;
+	pollInterval: number;
+	toTrack: LineConfig[];
+}
+export type Config = Required<ConfigFile>;

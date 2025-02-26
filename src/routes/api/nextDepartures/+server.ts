@@ -1,21 +1,18 @@
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
-import type { Stop, Line, TisseoNextDepartureResponse, Departures, Departure } from '$lib/types';
+import type { TisseoNextDepartureResponse, Departures, Departure, LineConfig } from '$lib/types';
 import { env } from '$env/dynamic/private';
 import { BASE_API_URL } from '$lib/constants';
 import { getConfig } from '$lib/config';
 
 const STOP_SCHEDULE_URL = BASE_API_URL + `/stops_schedules.json?key=${env.TISSEO_API_KEY}`;
-const RESULT_PER_LINE = 5;
+const DEFAULT_RESULT_PER_LINE = 5;
 
 // Fetch the next departures at a given stop for a given line
-const getNextDeparturesAtStop = async (
-	stopId: Stop['id'],
-	lineId: Line['id']
-): Promise<TisseoNextDepartureResponse> => {
+const getNextDeparturesAtStop = async (entry: LineConfig): Promise<TisseoNextDepartureResponse> => {
 	console.count('Sending a request to Tisseo API');
 	const res = await fetch(
-		`${STOP_SCHEDULE_URL}&stopPointId=${stopId}&lineId=${lineId}&number=${RESULT_PER_LINE}`
+		`${STOP_SCHEDULE_URL}&stopPointId=${entry.stopId}${entry.lineId ? '&lineId=' + entry.lineId : ''}&number=${entry?.numberOfResults ?? DEFAULT_RESULT_PER_LINE}`
 	);
 	const data = await res.json();
 	return data;
@@ -49,12 +46,11 @@ const orderByDate = (a: Departure, b: Departure) => {
 export const GET: RequestHandler = async ({ fetch }) => {
 	let expirationDate = new Date();
 	const departures: Departure[] = [];
-	const trackedStops = await getConfig(fetch);
+	const config = await getConfig(fetch);
 
 	// Fetch next departures for each line, format them and store them in the departures array
-	for (const track of trackedStops) {
-		const { stopId, lineId } = track;
-		const data = await getNextDeparturesAtStop(stopId, lineId);
+	for (const track of config.toTrack) {
+		const data = await getNextDeparturesAtStop(track);
 		expirationDate = new Date(data.expirationDate);
 		departures.push(...formatNextDepartures(data));
 	}
