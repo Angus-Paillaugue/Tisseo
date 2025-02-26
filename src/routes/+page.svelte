@@ -7,13 +7,18 @@
 	import { SvelteDate } from 'svelte/reactivity';
 	import { cn } from '$lib/utils';
 	import { getConfig } from '$lib/config';
+	import { Logger } from '$lib/logger';
 
 	let nextDepartures = $state<Departures>();
 	let updatedAt = $state<Date>(new Date());
 	let timeDisplayMode = $state<'delay' | 'time'>('delay');
 	let now = new SvelteDate();
 	let isLoading = $state(true);
+	let onMountLoading = $state(true);
 	let config = $state<Awaited<ReturnType<typeof getConfig>>>();
+	let toExclude: string[] = $state([]);
+	let linesToTrack = $state<(Line & { excluded: boolean })[]>([]);
+	let fetchAbortController = new AbortController();
 	let error = $state<{
 		status: boolean;
 		retryIn?: number;
@@ -27,14 +32,44 @@
 		const line = config.toTrack.find(
 			(line) => line.stopId === stopId && (!line.lineId || line.lineId === lineId)
 		);
+		if (!line?.walkTime) Logger.info(`No walk time found for line ${lineId} and stop ${stopId}`);
 		return line?.walkTime ?? 0;
 	};
 
+	async function getLinesInfo() {
+		if (!config) return;
+		const res = await fetch('/api/getLinesInfos');
+		if (!res.ok) {
+			console.error('Failed to fetch lines info');
+			return;
+		}
+		const data: Line[] = await res.json();
+		// Add excluded property to each line
+		linesToTrack = data.map((line) => {
+			return {
+				...line,
+				excluded: false
+			};
+		});
+	}
+
 	async function fetchData() {
+		isLoading = true;
+		// Abort previous request if exists
+		if (fetchAbortController) {
+			fetchAbortController.abort();
+		}
+
+		// Create new controller for this request
+		fetchAbortController = new AbortController();
 		setError({ status: false });
-		const res = await fetch('/api/nextDepartures');
+		const res = await fetch('/api/nextDepartures?toExclude=' + toExclude.join(','), {
+			signal: fetchAbortController.signal
+		});
+		fetchAbortController = new AbortController();
 		updatedAt = new Date();
 		if (!res.ok) {
+			Logger.error(`Failed to fetch next departures: ${res.statusText}`);
 			setError({
 				status: true,
 				retryIn: 30,
@@ -42,6 +77,7 @@
 				retryFunc: fetchData
 			});
 			isLoading = false;
+			return;
 		}
 		const data: Departures = await res.json();
 		// Parses dates
@@ -51,6 +87,7 @@
 		});
 		data.expirationDate = new Date(data.expirationDate);
 
+		// Concatenate array and filter duplicates because of filtering
 		nextDepartures = data;
 		isLoading = false;
 	}
@@ -58,7 +95,7 @@
 	onMount(() => {
 		let interval: ReturnType<typeof setInterval> | undefined;
 		// Fetch config
-		getConfig().then((result) => {
+		getConfig().then(async (result) => {
 			config = result;
 
 			// Set time display mode
@@ -66,7 +103,9 @@
 				timeDisplayMode = localStorage.getItem('timeDisplayMode') as 'time' | 'delay';
 			}
 
-			fetchData();
+			getLinesInfo();
+			await fetchData();
+			onMountLoading = false;
 
 			interval = setInterval(fetchData, config.pollInterval * 1000);
 		});
@@ -116,6 +155,25 @@
 		return Math.round(delta) + ' min';
 	};
 
+	/**
+	 * Sets an error configuration and manages a retry countdown timer.
+	 *
+	 * @param {typeof error} config - The error configuration object
+	 *
+	 * This function:
+	 * 1. Updates the error state with the provided configuration
+	 * 2. If the error includes a retry timer (retryIn):
+	 *    - Clears any existing interval
+	 *    - Sets up a new interval that:
+	 *      - Decrements the retry counter every second
+	 *      - Executes the retry function when the counter reaches zero
+	 *      - Cleans up the interval after execution
+	 *
+	 * The error object should contain:
+	 * - retryIn: Number of seconds until retry
+	 * - retryFunc: Function to call when retry timer expires
+	 * - interval: Reference to the timer interval (managed by this function)
+	 */
 	const setError = (config: typeof error) => {
 		error = config;
 		if (!error?.retryIn) return;
@@ -136,6 +194,21 @@
 			if (error.retryIn) error.retryIn -= 1;
 		}, 1000);
 	};
+
+	const toggleExcluded = (line: Line) => {
+		const index = linesToTrack.findIndex((l) => l.id === line.id);
+		if (index === -1) return;
+		linesToTrack[index].excluded = !linesToTrack[index].excluded;
+		if (linesToTrack[index].excluded) {
+			toExclude.push(line.id);
+		} else {
+			toExclude = toExclude.filter((id) => id !== line.id);
+		}
+		fetchData();
+	};
+
+	const arraySum = (arr: (number | undefined)[]) =>
+		arr.reduce((acc, val) => (acc ?? 0) + (val ?? 0), 0);
 </script>
 
 <!-- If the server throws an error, show this no internet popup -->
@@ -162,17 +235,37 @@
 	</div>
 {/if}
 
-<Update {updatedAt} {fetchData} />
+<Update {updatedAt} {isLoading} {fetchData} />
+
+<!-- Lines filtering -->
+<div class="flex shrink-0 flex-row flex-nowrap gap-2 overflow-x-auto px-2 pt-2 pb-1">
+	{#if onMountLoading}
+		{#each Array(config?.toTrack?.length ?? 5) as _}
+			<div class="bg-card h-[38px] w-[52px] shrink-0 animate-pulse rounded-sm"></div>
+		{/each}
+	{:else if linesToTrack}
+		{#each linesToTrack as line}
+			<button
+				onclick={() => toggleExcluded(line)}
+				class={cn('rounded-sm', line.excluded && 'ring-2 ring-red-600')}
+			>
+				<LineNumber {line} />
+			</button>
+		{/each}
+	{/if}
+</div>
 
 <!-- Departures -->
 <div
 	class={cn(
-		'no-scrollbar flex grow flex-col gap-2 px-2',
+		'no-scrollbar flex grow flex-col gap-2 px-2 pt-1',
 		isLoading ? 'overflow-hidden' : 'overflow-y-auto'
 	)}
 >
-	{#if isLoading}
-		<Loader />
+	{#if onMountLoading}
+		<Loader
+			amount={config?.toTrack ? arraySum(config.toTrack.map((l) => l.numberOfResults)) : 100}
+		/>
 	{:else if nextDepartures}
 		{#each nextDepartures.departures as departure}
 			{@const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)}

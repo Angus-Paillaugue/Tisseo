@@ -3,8 +3,15 @@
 	"toTrack": [
 		{
 			"stopId": "stop_point:SP_1367",
+			"lineId": "line:29",
 			"walkTime": 3,
-			"numberOfResults": 7
+			"numberOfResults": 4
+		},
+		{
+			"stopId": "stop_point:SP_1367",
+			"lineId": "line:58",
+			"walkTime": 3,
+			"numberOfResults": 4
 		},
 		{
 			"stopId": "stop_point:SP_2074",

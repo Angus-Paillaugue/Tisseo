@@ -5,7 +5,7 @@
 	let { children } = $props();
 </script>
 
-<main class="mx-auto flex h-svh w-full max-w-xl flex-col gap-2 py-2">
+<main class="mx-auto flex h-svh w-full max-w-screen-md flex-col py-2">
 	{@render children()}
 
 	<Nav />

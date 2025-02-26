@@ -3,13 +3,15 @@
 	import { Check, RefreshCcw } from 'lucide-svelte';
 	import { SvelteDate } from 'svelte/reactivity';
 	import { scale } from 'svelte/transition';
+	import { cn } from '$lib/utils';
 
 	interface Props {
 		updatedAt: Date;
 		fetchData: () => void;
+		isLoading?: boolean;
 	}
 
-	let { updatedAt, fetchData }: Props = $props();
+	let { updatedAt, fetchData, isLoading = false }: Props = $props();
 
 	let now = new SvelteDate();
 
@@ -31,20 +33,24 @@
 
 <div class="flex flex-row justify-between gap-8 pr-2">
 	<p class="bg-card grow rounded-r-full border border-l-0 p-1 pl-4 text-start text-base">
-		Last update:
-		{#if deltaSinceUpdate() < 5}
-			<span class="font-sans">Just now</span>
+		{#if isLoading}
+			Loading...
 		{:else}
-			<span class="font-mono">{Math.floor(deltaSinceUpdate())}</span>s ago
+			Last update:
+			{#if deltaSinceUpdate() < 5}
+				<span class="font-sans">Just now</span>
+			{:else}
+				<span class="font-mono">{Math.floor(deltaSinceUpdate())}</span>s ago
+			{/if}
 		{/if}
 	</p>
 	<Button variant="primary" class="shrink-0" onclick={fetchData}>
-		{#if deltaSinceUpdate() < 2}
+		{#if deltaSinceUpdate() < 2 && !isLoading}
 			<span class="size-5" in:scale>
 				<Check class="size-full" />
 			</span>
 		{:else}
-			<span class="size-5" in:scale>
+			<span class={cn('size-5 transition-transform', isLoading && 'animate-spin')} in:scale>
 				<RefreshCcw class="size-full" />
 			</span>
 		{/if}

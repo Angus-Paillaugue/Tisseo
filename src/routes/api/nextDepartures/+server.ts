@@ -4,6 +4,7 @@ import type { TisseoNextDepartureResponse, Departures, Departure, LineConfig } f
 import { env } from '$env/dynamic/private';
 import { BASE_API_URL } from '$lib/constants';
 import { getConfig } from '$lib/config';
+import { Logger } from '$lib/logger';
 
 const STOP_SCHEDULE_URL = BASE_API_URL + `/stops_schedules.json?key=${env.TISSEO_API_KEY}`;
 const DEFAULT_RESULT_PER_LINE = 5;
@@ -43,14 +44,29 @@ const orderByDate = (a: Departure, b: Departure) => {
 	return a.dateTime.getTime() - b.dateTime.getTime();
 };
 
-export const GET: RequestHandler = async ({ fetch }) => {
+export const GET: RequestHandler = async ({ fetch, url }) => {
 	try {
+		const toExclude =
+			url.searchParams
+				.get('toExclude')
+				?.split(',')
+				?.filter((e) => e !== '') ?? [];
 		let expirationDate = new Date();
 		const departures: Departure[] = [];
 		const config = await getConfig(fetch);
 
+		const filterLines = (e: LineConfig) => {
+			// Filter out lines to exclude
+			if (e?.lineId && toExclude.includes(e.lineId)) return false;
+			// Filter out stops to exclude
+			if (toExclude.includes(e.stopId)) return false;
+			// If no mathc is found, keep the entry
+			return true;
+		};
+
 		// Fetch next departures for each line, format them and store them in the departures array
-		for (const track of config.toTrack) {
+		const toFetch = config.toTrack.filter(filterLines);
+		for (const track of toFetch) {
 			const data = await getNextDeparturesAtStop(track);
 			expirationDate = new Date(data.expirationDate);
 			departures.push(...formatNextDepartures(data));
@@ -69,10 +85,13 @@ export const GET: RequestHandler = async ({ fetch }) => {
 			expirationDate
 		};
 
+		await new Promise((resolve) => setTimeout(resolve, 1000));
+
 		return json(response, { headers });
 	} catch (error) {
 		let message = 'Unknown Error';
 		if (error instanceof Error) message = error.message;
+		Logger.error(`Error while fetching next departures: ${message}`);
 		return new Response(message, { statusText: message, status: 500 });
 	}
 };

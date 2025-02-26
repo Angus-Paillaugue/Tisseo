@@ -36,7 +36,7 @@
 	</a>
 {/snippet}
 
-<div class="w-full shrink-0 px-2">
+<div class="w-full shrink-0 px-2 pt-2">
 	<nav
 		class="bg-card grid w-full overflow-hidden rounded-full border"
 		style="grid-template-columns: repeat({navItems.length}, 1fr);"

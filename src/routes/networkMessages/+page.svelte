@@ -4,6 +4,7 @@
 	import { SvelteDate } from 'svelte/reactivity';
 	import { Modal, Update, Loader } from '$lib/components';
 	import { cn } from '$lib/utils';
+	import { Logger } from '$lib/logger';
 
 	const POLLING_INTERVAL = 60 * 1000; // 60 seconds
 
@@ -20,7 +21,8 @@
 		const res = await fetch('/api/networkMessages');
 		updatedAt = new Date();
 		if (!res.ok) {
-			throw new Error('Network response was not ok');
+			Logger.error('Network response was not ok : ' + res.statusText);
+			throw new Error('Network response was not ok : ' + res.statusText);
 		}
 		const data: TisseoNetworkMessagesResponse = await res.json();
 		networkMessages = data;
@@ -59,7 +61,7 @@
 <!-- Network messages -->
 <div
 	class={cn(
-		'no-scrollbar flex grow flex-col gap-2 px-2',
+		'no-scrollbar flex grow flex-col gap-2 px-2 pt-2',
 		isLoading ? 'overflow-hidden' : 'overflow-y-auto'
 	)}
 >
