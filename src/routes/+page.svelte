@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Departures, Line, Stop } from '$lib/types';
 	import { onMount } from 'svelte';
-	import { LineNumber, Update, Loader } from '$lib/components';
+	import { LineNumber, Update, Loader, Button } from '$lib/components';
 	import { ChevronRight } from 'lucide-svelte';
 	import { scale } from 'svelte/transition';
 	import { SvelteDate } from 'svelte/reactivity';
@@ -14,6 +14,13 @@
 	let now = new SvelteDate();
 	let isLoading = $state(true);
 	let config = $state<Awaited<ReturnType<typeof getConfig>>>();
+	let error = $state<{
+		status: boolean;
+		retryIn?: number;
+		retryFunc?: Function;
+		message?: string;
+		interval?: ReturnType<typeof setInterval>;
+	}>({ status: false, retryIn: -1 });
 
 	const getWalkTime = (lineId: Line['id'], stopId: Stop['id']) => {
 		if (!config) return 0;
@@ -24,11 +31,17 @@
 	};
 
 	async function fetchData() {
+		setError({ status: false });
 		const res = await fetch('/api/nextDepartures');
 		updatedAt = new Date();
 		if (!res.ok) {
+			setError({
+				status: true,
+				retryIn: 30,
+				// message: res.statusText,
+				retryFunc: fetchData
+			});
 			isLoading = false;
-			throw new Error('Network response was not ok');
 		}
 		const data: Departures = await res.json();
 		// Parses dates
@@ -43,7 +56,7 @@
 	}
 
 	onMount(() => {
-		let interval: ReturnType<typeof setInterval>;
+		let interval: ReturnType<typeof setInterval> | undefined;
 		// Fetch config
 		getConfig().then((result) => {
 			config = result;
@@ -55,7 +68,7 @@
 
 			fetchData();
 
-			interval = setInterval(fetchData, config.pollInterval);
+			interval = setInterval(fetchData, config.pollInterval * 1000);
 		});
 
 		return () => {
@@ -64,7 +77,7 @@
 	});
 
 	/**
-	 * Formats a Date object into a localized time string in French format (HH:mm:ss)
+	 * Formats a Date object into> a localized time string in French format (HH:mm:ss)
 	 * @param {Date} time - The Date object to format
 	 * @returns {string} The formatted time string in 24-hour format with hours, minutes and seconds
 	 */
@@ -102,7 +115,52 @@
 		}
 		return Math.round(delta) + ' min';
 	};
+
+	const setError = (config: typeof error) => {
+		error = config;
+		if (!error?.retryIn) return;
+		// Clear ol intervals
+		if (error.interval) {
+			clearInterval(error.interval);
+		}
+		console.log('test');
+		// Set new one to decrement counter every second
+		error.interval = setInterval(() => {
+			// If timer has reached 0, call the retry function and clear the interval
+			if (error?.retryIn && error.retryIn <= 0) {
+				error?.retryFunc?.();
+				clearInterval(error.interval);
+				return;
+			}
+			// Else, decrement the seconds counter
+			if (error.retryIn) error.retryIn -= 1;
+		}, 1000);
+	};
 </script>
+
+<!-- If the server throws an error, show this no internet popup -->
+<!-- We need to do better handling in the future to check the cause of the error and have more precise messages then "no internet" -->
+{#if error.status}
+	<div
+		class="bg-background/50 fixed inset-0 z-40 flex flex-col items-center justify-center backdrop-blur-xs"
+	>
+		<div class="bg-card flex w-full max-w-md flex-col gap-2 rounded border p-4">
+			<h1 class="text-lg font-medium">No internet access</h1>
+			<p>It looks like you don't have any internet access.</p>
+			<p>{error.message}</p>
+			{#if error.retryIn}
+				<p>
+					We will try to re-send the request in <b>{error.retryIn}</b> second{error.retryIn > 1
+						? 's'
+						: ''}
+				</p>
+			{/if}
+			{#if error.retryFunc}
+				<Button onclick={() => error?.retryFunc?.()}>Retry now</Button>
+			{/if}
+		</div>
+	</div>
+{/if}
 
 <Update {updatedAt} {fetchData} />
 

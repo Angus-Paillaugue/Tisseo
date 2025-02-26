@@ -10,7 +10,7 @@ const DEFAULT_RESULT_PER_LINE = 5;
 
 // Fetch the next departures at a given stop for a given line
 const getNextDeparturesAtStop = async (entry: LineConfig): Promise<TisseoNextDepartureResponse> => {
-	console.count('Sending a request to Tisseo API');
+	if (env.NODE_ENV !== 'production') console.count('Sending a request to Tisseo API');
 	const res = await fetch(
 		`${STOP_SCHEDULE_URL}&stopPointId=${entry.stopId}${entry.lineId ? '&lineId=' + entry.lineId : ''}&number=${entry?.numberOfResults ?? DEFAULT_RESULT_PER_LINE}`
 	);
@@ -44,29 +44,35 @@ const orderByDate = (a: Departure, b: Departure) => {
 };
 
 export const GET: RequestHandler = async ({ fetch }) => {
-	let expirationDate = new Date();
-	const departures: Departure[] = [];
-	const config = await getConfig(fetch);
+	try {
+		let expirationDate = new Date();
+		const departures: Departure[] = [];
+		const config = await getConfig(fetch);
 
-	// Fetch next departures for each line, format them and store them in the departures array
-	for (const track of config.toTrack) {
-		const data = await getNextDeparturesAtStop(track);
-		expirationDate = new Date(data.expirationDate);
-		departures.push(...formatNextDepartures(data));
+		// Fetch next departures for each line, format them and store them in the departures array
+		for (const track of config.toTrack) {
+			const data = await getNextDeparturesAtStop(track);
+			expirationDate = new Date(data.expirationDate);
+			departures.push(...formatNextDepartures(data));
+		}
+
+		departures.sort(orderByDate);
+
+		const headers: Record<string, string> = {};
+
+		if (env.NODE_ENV !== 'production') {
+			headers['Cache-Control'] = 'max-age=60';
+		}
+
+		const response: Departures = {
+			departures,
+			expirationDate
+		};
+
+		return json(response, { headers });
+	} catch (error) {
+		let message = 'Unknown Error';
+		if (error instanceof Error) message = error.message;
+		return new Response(message, { statusText: message, status: 500 });
 	}
-
-	departures.sort(orderByDate);
-
-	const headers: Record<string, string> = {};
-
-	if (env.NODE_ENV !== 'production') {
-		headers['Cache-Control'] = 'max-age=60';
-	}
-
-	const response: Departures = {
-		departures,
-		expirationDate
-	};
-
-	return json(response, { headers });
 };

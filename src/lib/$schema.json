@@ -10,7 +10,8 @@
 		"pollInterval": {
 			"type": "integer",
 			"minimum": 15,
-			"description": "The time in seconnds between each refresh of the departure time"
+			"description": "The time in seconnds between each refresh of the departure time",
+			"default": 60
 		},
 		"toTrack": {
 			"type": "array",
@@ -42,6 +43,6 @@
 			}
 		}
 	},
-	"required": ["$schema", "pollInterval", "toTrack"],
+	"required": ["$schema", "toTrack"],
 	"additionalProperties": false
 }

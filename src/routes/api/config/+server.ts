@@ -6,7 +6,9 @@ import { constants } from 'fs';
 const CONFIG_FILE_PATH = 'config/config.json';
 
 const DEMO_CONFIG = {
-	$schema: 'https://json-schema.org/draft/2020-12/schema',
+	$schema:
+		'https://raw.githubusercontent.com/Angus-Paillaugue/Tisseo/refs/heads/main/src/lib/$schema.json',
+	pollInterval: 60,
 	toTrack: [
 		{
 			stopId: 'stop_point:SP_1702',
@@ -39,7 +41,13 @@ function checkFileExists(file: string): Promise<boolean> {
 
 export const GET: RequestHandler = async () => {
 	// Creates config dir if it doesn't exist
-	await mkdir(CONFIG_FILE_PATH.split('/').slice(0, -1).join('/'), { recursive: true });
+	await mkdir(
+		CONFIG_FILE_PATH.split('/')
+			.filter((e) => e)
+			.slice(0, -1)
+			.join('/'),
+		{ recursive: true }
+	);
 
 	// Creates config file with exemple config if it doesn't exist
 	const fileExists = await checkFileExists(CONFIG_FILE_PATH);
