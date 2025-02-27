@@ -5,7 +5,7 @@
 	import { ChevronRight } from 'lucide-svelte';
 	import { scale } from 'svelte/transition';
 	import { SvelteDate } from 'svelte/reactivity';
-	import { cn } from '$lib/utils';
+	import { cn, tzOffetter } from '$lib/utils';
 	import { getConfig } from '$lib/config';
 	import { Logger } from '$lib/logger';
 
@@ -27,20 +27,27 @@
 		interval?: ReturnType<typeof setInterval>;
 	}>({ status: false, retryIn: -1 });
 
+	/**
+	 * Calculates the walk time for a given line and stop.
+	 *
+	 * @param {Line['id']} lineId - The ID of the line.
+	 * @param {Stop['id']} stopId - The ID of the stop.
+	 * @returns {number} - The walk time in minutes. Returns -1 if no configuration is found or no walk time is specified.
+	 */
 	const getWalkTime = (lineId: Line['id'], stopId: Stop['id']) => {
-		if (!config) return 0;
+		if (!config) return -1;
 		const line = config.toTrack.find(
 			(line) => line.stopId === stopId && (!line.lineId || line.lineId === lineId)
 		);
 		if (!line?.walkTime) Logger.info(`No walk time found for line ${lineId} and stop ${stopId}`);
-		return line?.walkTime ?? 0;
+		return line?.walkTime ?? -1;
 	};
 
 	async function getLinesInfo() {
 		if (!config) return;
 		const res = await fetch('/api/getLinesInfos');
 		if (!res.ok) {
-			console.error('Failed to fetch lines info');
+			Logger.error('Failed to fetch lines info');
 			return;
 		}
 		const data: Line[] = await res.json();
@@ -82,10 +89,10 @@
 		const data: Departures = await res.json();
 		// Parses dates
 		data.departures.forEach((departure) => {
-			departure.dateTime = new Date(departure.dateTime);
+			departure.dateTime = tzOffetter.fromUTCToLocale(departure.dateTime);
 			departure.walkTime = getWalkTime(departure.line.id, departure.stop.id);
 		});
-		data.expirationDate = new Date(data.expirationDate);
+		data.expirationDate = tzOffetter.fromUTCToLocale(data.expirationDate);
 
 		// Concatenate array and filter duplicates because of filtering
 		nextDepartures = data;
@@ -181,7 +188,6 @@
 		if (error.interval) {
 			clearInterval(error.interval);
 		}
-		console.log('test');
 		// Set new one to decrement counter every second
 		error.interval = setInterval(() => {
 			// If timer has reached 0, call the retry function and clear the interval
@@ -195,6 +201,14 @@
 		}, 1000);
 	};
 
+	/**
+	 * Toggles the 'excluded' status of a given line in the linesToTrack array.
+	 * If the line is excluded, it adds the line's id to the toExclude array.
+	 * If the line is not excluded, it removes the line's id from the toExclude array.
+	 * Finally, it calls the fetchData function to update the data.
+	 *
+	 * @param {Line} line - The line object to toggle the 'excluded' status for.
+	 */
 	const toggleExcluded = (line: Line) => {
 		const index = linesToTrack.findIndex((l) => l.id === line.id);
 		if (index === -1) return;
@@ -207,6 +221,12 @@
 		fetchData();
 	};
 
+	/**
+	 * Calculates the sum of an array of numbers, treating `undefined` values as 0.
+	 *
+	 * @param {Array<number | undefined>} arr - The array of numbers or undefined values.
+	 * @returns {number} The sum of the array elements, with `undefined` values treated as 0.
+	 */
 	const arraySum = (arr: (number | undefined)[]) =>
 		arr.reduce((acc, val) => (acc ?? 0) + (val ?? 0), 0);
 </script>

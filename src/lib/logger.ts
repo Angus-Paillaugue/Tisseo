@@ -14,4 +14,8 @@ export class Logger {
 	static debug(...args: unknown[]) {
 		console.debug('[DEBUG]:', ...args);
 	}
+
+	static debug_count(arg: string) {
+		console.count('[DEBUG]: ' + arg);
+	}
 }

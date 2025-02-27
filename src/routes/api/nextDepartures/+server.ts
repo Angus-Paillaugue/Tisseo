@@ -5,13 +5,14 @@ import { env } from '$env/dynamic/private';
 import { BASE_API_URL } from '$lib/constants';
 import { getConfig } from '$lib/config';
 import { Logger } from '$lib/logger';
+import { tzOffetter } from '$lib/utils';
 
 const STOP_SCHEDULE_URL = BASE_API_URL + `/stops_schedules.json?key=${env.TISSEO_API_KEY}`;
 const DEFAULT_RESULT_PER_LINE = 5;
 
 // Fetch the next departures at a given stop for a given line
 const getNextDeparturesAtStop = async (entry: LineConfig): Promise<TisseoNextDepartureResponse> => {
-	if (env.NODE_ENV !== 'production') console.count('Sending a request to Tisseo API');
+	if (env.NODE_ENV !== 'production') Logger.debug_count('Sending a request to Tisseo API');
 	const res = await fetch(
 		`${STOP_SCHEDULE_URL}&stopPointId=${entry.stopId}${entry.lineId ? '&lineId=' + entry.lineId : ''}&number=${entry?.numberOfResults ?? DEFAULT_RESULT_PER_LINE}`
 	);
@@ -33,7 +34,7 @@ const formatNextDepartures = (data: TisseoNextDepartureResponse): Departure[] =>
 			id: departure.line.id,
 			shortName: departure.line.shortName
 		};
-		const dateTime: Departure['dateTime'] = new Date(departure.dateTime);
+		const dateTime: Departure['dateTime'] = tzOffetter.fromTisseoToUTC(departure.dateTime);
 		const destination: Departure['destination'] = departure.destination[0].name;
 		return { dateTime, destination, line, stop };
 	});
@@ -68,7 +69,7 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
 		const toFetch = config.toTrack.filter(filterLines);
 		for (const track of toFetch) {
 			const data = await getNextDeparturesAtStop(track);
-			expirationDate = new Date(data.expirationDate);
+			expirationDate = tzOffetter.fromTisseoToUTC(data.expirationDate);
 			departures.push(...formatNextDepartures(data));
 		}
 
@@ -76,9 +77,9 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
 
 		const headers: Record<string, string> = {};
 
-		if (env.NODE_ENV !== 'production') {
-			headers['Cache-Control'] = 'max-age=60';
-		}
+		// if (env.NODE_ENV !== 'production') {
+		// 	headers['Cache-Control'] = 'max-age=60';
+		// }
 
 		const response: Departures = {
 			departures,
