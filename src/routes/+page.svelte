@@ -231,6 +231,10 @@
 		arr.reduce((acc, val) => (acc ?? 0) + (val ?? 0), 0);
 </script>
 
+<svelte:head>
+	<title>Home</title>
+</svelte:head>
+
 <!-- If the server throws an error, show this no internet popup -->
 <!-- We need to do better handling in the future to check the cause of the error and have more precise messages then "no internet" -->
 {#if error.status}

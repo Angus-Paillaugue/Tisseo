@@ -11,13 +11,20 @@ export const GET: RequestHandler = async ({ fetch }) => {
 	const data: TisseoNetworkMessagesResponse = (await res.json()).messages;
 	const config = await getConfig(fetch);
 
-	const messagesRelatedToMyLines = data.filter((message) => {
-		return (
-			config.toTrack.some(
-				(line) => line?.lineId && message?.lines?.map((l) => l.id)?.includes(line.lineId)
-			) || !message?.lines
-		);
-	});
+	const messagesRelatedToMyLines = data
+		.filter((message) => {
+			return (
+				config.toTrack.some(
+					(line) => line?.lineId && message?.lines?.map((l) => l.id)?.includes(line.lineId)
+				) || !message?.lines
+			);
+		})
+		.map((m) => {
+			// Add target="_blank" to all links
+			// m.message.content = m.message.content.replace(/href="([^"]*)"/g, 'target="_blank" href="$1"');
+			return m;
+		})
+		.reverse();
 
 	const headers: Record<string, string> = {};
 

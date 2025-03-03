@@ -49,6 +49,10 @@
 	});
 </script>
 
+<svelte:head>
+	<title>Network messages</title>
+</svelte:head>
+
 <Modal bind:open={networkMessageModal.open}>
 	<Modal.Heading>{networkMessageModal.message?.message.title}</Modal.Heading>
 	<div class="prose prose-neutral prose-invert prose-sm">
