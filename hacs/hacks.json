@@ -1,0 +1,15 @@
+{
+  "name": "Tisseo Departures Card",
+  "description": "A custom card to display the next departures of Tisseo's stops",
+  "version": "0.0.1",
+  "slug": "tisseo-departures-card",
+  "author": "Angus-Paillaugue",
+  "url": "https://github.com/Angus-Paillaugue/Tisseo",
+  "download_url": "https://github.com/Angus-Paillaugue/Tisseo/releases/latest/download/hacs/tisseo-card.js",
+  "dependencies": [],
+  "hacs": {
+    "homepage": "https://github.com/Angus-Paillaugue/Tisseo",
+    "category": "frontend",
+    "v1": true
+  }
+}
