@@ -6,29 +6,13 @@ It also provides an API that can be added in Home-Assistant (WIP).
 # Installation
 
 The project has been packaged in a simple and light docker image. You can run it by leveraging the power of docker compose.
-Here is an exemple `docker-compose.yaml` file :
-
-```yaml
-services:
-  frontend:
-    image: anguspllg/tisseo:latest
-    ports:
-      - '3000:3000'
-    environment:
-      - PORT=3000
-      - NODE_ENV=production
-      - TZ=Europe/Paris
-    env_file:
-      - .env
-    volumes:
-      - ./config:/app/config
-```
-
-As you can see, this compose file relies on a `.env` file. You will need to create one containing your Tisseo API key using the following command :
+To ease your pain, we provide an install script. You can run it with :
 
 ```bash
-echo "TISSEO_API_KEY=YOUR_API_KEY" > .env
+curl -fsSL https://raw.githubusercontent.com/Angus-Paillaugue/Tisseo/refs/heads/main/scripts/install.sh | bash
 ```
+
+The script will have created a `.env` file
 
 Once done, you can start the container with
 

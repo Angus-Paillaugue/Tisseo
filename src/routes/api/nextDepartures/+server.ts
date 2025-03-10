@@ -77,6 +77,9 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
 
 		const headers: Record<string, string> = {};
 
+    // Allow CORS
+    headers['Access-Control-Allow-Origin'] = '*';
+
 		// if (env.NODE_ENV !== 'production') {
 		// 	headers['Cache-Control'] = 'max-age=60';
 		// }

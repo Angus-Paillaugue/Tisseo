@@ -12,7 +12,7 @@
 	let nextDepartures = $state<Departures>();
 	let updatedAt = $state<Date>(new Date());
 	let timeDisplayMode = $state<'delay' | 'time'>('delay');
-	let now = new SvelteDate();
+	let now = $state(new SvelteDate());
 	let isLoading = $state(true);
 	let onMountLoading = $state(true);
 	let config = $state<Awaited<ReturnType<typeof getConfig>>>();
@@ -70,9 +70,12 @@
 		// Create new controller for this request
 		fetchAbortController = new AbortController();
 		setError({ status: false });
-		const res = await fetch('/api/nextDepartures?toExclude=' + toExclude.join(','), {
+		const uri = new URL('/api/nextDepartures', window.location.origin);
+		if (toExclude.length > 0) uri.searchParams.append('toExclude', toExclude.join(','));
+		const res = await fetch(uri, {
 			signal: fetchAbortController.signal
 		});
+		now = new SvelteDate();
 		fetchAbortController = new AbortController();
 		updatedAt = new Date();
 		if (!res.ok) {
