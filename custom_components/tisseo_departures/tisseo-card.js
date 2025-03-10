@@ -85,7 +85,7 @@ class TisseoCard extends LitElement {
     if (nextDeparture) {
       this.fetchDepartures();
     }
-		return `${this._timeElapsed}s ago`; // Display seconds since last update
+		return this._timeElapsed; // Display seconds since last update
 	}
 
 	setConfig(config) {
@@ -143,7 +143,7 @@ class TisseoCard extends LitElement {
 				<div class="card">
 					<div class="header">
 						<p>
-							${this._isRefreshing ? 'Loading...' : `Updated: <b>${this.timeSinceLastUpdate}</b>`}
+							${this._isRefreshing ? 'Loading...' : html`Updated: <b>${this.timeSinceLastUpdate}</b>s ago`}
 						</p>
 						<button @click="${this.fetchDepartures}" class="refresh-button">Refresh</button>
 					</div>

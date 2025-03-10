@@ -20,3 +20,4 @@ This custom card displays next bus departures for Tisseo.
 resources:
   - url: /local/tisseo-card.js
     type: module
+```
