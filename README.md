@@ -17,7 +17,7 @@ The script will have created a `.env` file
 Once done, you can start the container with
 
 ```bash
-docker compsoe up -d
+docker compose up -d
 ```
 
 # Configuration
